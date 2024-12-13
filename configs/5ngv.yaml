@@ -1,0 +1,40 @@
+structure_path: ./examples/5ngv.pdb
+lmdesign_checkpoint: ./ckpts/igdesign_acvr2b_holdout.ckpt
+pmpnn_checkpoint: ./ckpts/igmpnn_acvr2b_holdout.ckpt
+save_path: "./output/5ngv_results.csv"
+
+region_order: ["hcdr1", "hcdr2", "hcdr3"] # CDRs to design and order to design in
+
+lmdesign_num_decoding_orders: 10
+lmdesign_num_pmpnn_seqs: 10
+lmdesign_num_lm_seqs: 10
+lmdesign_pmpnn_logit_temperature: 0.5
+lmdesign_output_logit_temperature: 0.5
+
+independent_loss: true
+
+condition_on_light_chain: true
+condition_on_antigen: true
+predict_light_chain: false
+batch_size: 1
+num_batches: 1
+random_seed: 0
+
+epitope_idxs_or_all: all # either a list of idxs or "all"
+
+antigen_chain_id: "A"
+heavy_chain_id: "H"
+light_chain_id: "L"
+
+regions:
+  hcdr1:
+    positions: [24, 25, 26, 27, 28, 29, 30, 31]
+    chain: "heavy"
+    
+  hcdr2:
+    positions:  [49, 50, 51, 52, 53, 54, 55, 56]
+    chain: "heavy"
+
+  hcdr3:
+    positions: [95, 96, 97, 98, 99, 100, 101, 102]
+    chain: "heavy"
