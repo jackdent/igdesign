@@ -72,3 +72,5 @@ SPR data generated from validating IgDesign is included in `"./data"`. Each CSV 
 - `Ratio Binding Replicates`: Ratio of replicates that show binding
 - `Binder`: True for binders, False for non-binders. Except for positive controls, we call a sequence a binder if it binds in all replicates, otherwise we call it a non-binder.
 - scRMSD columns: Columns for scRMSD are organized by region (one of `"HCDR1"`, `"HCDR2"`, `"HCDR3"`, `"HCDR123"`, or `"Fv"`) followed by `"scRMSD"` and followed by the model or strategy in parentheses (`"ABB2"` for ABodyBuilder2, `"ABB3"` for ABodyBuilder3, `"ABB3-LM"` for ABodyBuilder3-LM, `"ESMFold"` for ESMFold, `"Mean/Min/Max Ensemble"` for mean/min/max ensembles).
+
+`Note`: At this time, datasets for 7 out of 8 antibody-antigen systems used to evaluate IgDesign are released. The dataset for CD40-Ravagalimab has sequences blinded as X's and is stored in `"./data/Blinded"`.
