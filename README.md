@@ -58,7 +58,7 @@ Inference details are specified using YAML configs, examples of which can be fou
 - `regions`: Each key of this should be a CDR in `region_order` mapping to `positions` (list of indices corresponding to the CDR) and `chain` (either `"heavy"` or `"light"`)
 
 ## Surface Plasmon Resonance (SPR) Data
-SPR data generated from validating IgDesign is included in `"./data"`. Each CSV corresponds to one antibody-antigen system. The columns for each dataset are:
+SPR data generated from validating IgDesign is included in `"./data"` with representative sensorgrams in `"./data/Sensorgrams"`. Each CSV corresponds to one antibody-antigen system. The columns for each dataset are:
 - `Target`: The target screened against
 - `Reference Ab`: The reference antibody used
 - `Method`: Method for sequence generation. Either `"Positive Control"`, `"SAbDab"`, or `"Inverse Folding"`
