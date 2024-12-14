@@ -74,3 +74,17 @@ SPR data generated from validating IgDesign is included in `"./data"` with repre
 - scRMSD columns: Columns for scRMSD are organized by region (one of `"HCDR1"`, `"HCDR2"`, `"HCDR3"`, `"HCDR123"`, or `"Fv"`) followed by `"scRMSD"` and followed by the model or strategy in parentheses (`"ABB2"` for ABodyBuilder2, `"ABB3"` for ABodyBuilder3, `"ABB3-LM"` for ABodyBuilder3-LM, `"ESMFold"` for ESMFold, `"Mean/Min/Max Ensemble"` for mean/min/max ensembles).
 
 `Note`: At this time, we have released datasets for 7 out of 8 antibody-antigen systems used to evaluate IgDesign. The dataset for CD40-Ravagalimab has sequences blinded as X's and is included in `"./data/Blinded"`.
+
+## Citations
+If you find our code, data, or results useful, we ask that you cite our work: 
+```
+@article{Shanehsazzadeh2023igdesign,
+  title = {IgDesign: In vitro validated antibody design against multiple therapeutic antigens using inverse folding},
+  url = {http://dx.doi.org/10.1101/2023.12.08.570889},
+  DOI = {10.1101/2023.12.08.570889},
+  publisher = {Cold Spring Harbor Laboratory},
+  author = {Shanehsazzadeh,  Amir and Alverio,  Julian and Kasun,  George and Levine,  Simon and Calman,  Ido and Khan,  Jibran A and Chung,  Chelsea and Diaz,  Nicolas and Luton,  Breanna K and Tarter,  Ysis and McCloskey,  Cailen and Bateman,  Katherine B and Carter,  Hayley and Chapman,  Dalton and Consbruck,  Rebecca and Jaeger,  Alec and Kohnert,  Christa and Kopec-Belliveau,  Gaelin and Sutton,  John M and Guo,  Zheyuan and Canales,  Gustavo and Ejan,  Kai and Marsh,  Emily and Ruelos,  Alyssa and Ripley,  Rylee and Stoddard,  Brooke and Caguiat,  Rodante and Chapman,  Kyra and Saunders,  Matthew and Sharp,  Jared and Ganini da Silva,  Douglas and Feltner,  Audree and Ripley,  Jake and Bryant,  Megan E and Castillo,  Danni and Meier,  Joshua and Stegmann,  Christian M and Moran,  Katherine and Lemke,  Christine and Abdulhaqq,  Shaheed and Klug,  Lillian R and Bachas,  Sharrol},
+  year = {2023},
+  month = dec 
+}
+```
