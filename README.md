@@ -3,17 +3,23 @@ Read the [IgDesign paper](https://www.biorxiv.org/content/10.1101/2023.12.08.570
 
 
 ## Installation
+We recommend [micromamba](https://mamba.readthedocs.io) as the package manager.
 
-Install the environment. We recommend [micromamba](https://mamba.readthedocs.io) as the package manager:
+### Nvidia CUDA
 ```sh
 $ micromamba env create -f environment.yml
 $ micromamba activate igdesign
-```
-
-Install the igdesign package:
-```sh
 $ pip install -e .
 ```
+
+### AMD ROCm 
+This is a multi-step process so we've provided a script. We also assume you're using micromamba as the package manager. If not, please edit the script accordingly.
+```sh
+$ chmod +x install_amd_env.sh
+$ ./install_amd_env.sh
+$ micromamba activate igdesign
+```
+
 
 ## Download model weights
 In order to download our pretrained model weights please use the provided shell script:
@@ -76,6 +82,9 @@ SPR data generated from validating IgDesign is included in `"./data"` with repre
 - scRMSD columns: Columns for scRMSD are organized by region (one of `"HCDR1"`, `"HCDR2"`, `"HCDR3"`, `"HCDR123"`, or `"Fv"`) followed by `"scRMSD"` and followed by the model or strategy in parentheses (`"ABB2"` for ABodyBuilder2, `"ABB3"` for ABodyBuilder3, `"ABB3-LM"` for ABodyBuilder3-LM, `"ESMFold"` for ESMFold, `"Mean/Min/Max Ensemble"` for mean/min/max ensembles).
 
 `Note`: At this time, we have released datasets for 7 out of 8 antibody-antigen systems used to evaluate IgDesign. The dataset for CD40-Ravagalimab has sequences blinded as X's and is included in `"./data/Blinded"`.
+
+## Hardware compatibility
+We've tested this model on Nvidia A100 and H100 and AMD Mi300x gpus. We expect the model to perform equally well on the Nvidia H200 and the upcoming AMD Mi325x. If you encounter any bugs, feel free to open a ticket.
 
 ## Citations
 If you find our code, data, or results useful, we ask that you cite our work: 
