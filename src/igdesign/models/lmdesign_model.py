@@ -380,8 +380,8 @@ class LMDesignModel(Model):
                         default_threshold = torch.full(
                             (probs.shape[:2]),
                             self.cfg["linear_comb_embeddings_threshold"],
-                        ).cuda()
-                        backup_threshold = probs.max(dim=-1)[0].cuda()
+                        ).to(self.device)
+                        backup_threshold = probs.max(dim=-1)[0].to(self.device)
                         threshold = torch.argmax(
                             torch.stack((default_threshold, backup_threshold), dim=-1),
                             dim=-1,
