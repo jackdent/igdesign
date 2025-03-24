@@ -174,7 +174,7 @@ def prevent_invalid_tokens(logits):
 
 def get_lmdesign_logits(batch, cfg, model):
     decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
-    batch["decode_order"] = decode_order.cuda()
+    batch["decode_order"] = decode_order.to(model.device)
 
     # Rearrange decoding order here
     structure_model_out = model.model.structure_model(batch)
@@ -209,7 +209,7 @@ def lmdesign_sample(batch, cfg, model):
     all_seqs, all_pmpnn_seqs = list(), list()
     for decoding_order_idx in range(NUM_DECODING_ORDERS):
         decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
-        batch["decode_order"] = decode_order.cuda()
+        batch["decode_order"] = decode_order.to(model.device)
 
         # Rearrange decoding order here
         structure_model_out = model.model.structure_model(batch)
