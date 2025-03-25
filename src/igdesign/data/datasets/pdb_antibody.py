@@ -95,6 +95,9 @@ class PdbAntibodyDataset(StructureDataset):
             [chain[0] + key for _, (chain, key) in imgt_iterator() if self.use(chain)]
         )
 
+        # checks for Chai usage:
+        assert self.ag_crop_method == "none", "Antigen cropping was not tested and may break indexing"
+
     def maybe_load(self, item):
         if isinstance(item, str) or isinstance(item, Path):
             if Path(item).is_file():
