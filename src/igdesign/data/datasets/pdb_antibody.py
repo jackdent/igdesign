@@ -95,6 +95,9 @@ class PdbAntibodyDataset(StructureDataset):
             [chain[0] + key for _, (chain, key) in imgt_iterator() if self.use(chain)]
         )
 
+        # checks for Chai usage:
+        assert self.ag_crop_method == "none", "Antigen cropping was not tested and may break indexing"
+
     def maybe_load(self, item):
         if isinstance(item, str) or isinstance(item, Path):
             if Path(item).is_file():
@@ -271,23 +274,35 @@ class PdbAntibodyDataset(StructureDataset):
         return chain, sequence, coords
 
     def add_immunoglobulin(self, cfg, key, item):
+        # this function adds an antibody chain to the batch.
+        # it assumes a single Fv domain per chain and will not work for ScFv chains
+        # for indexing safety, we add expectation that the chain is trimmed to Fv region
+        
         data, pdb_path = cfg.get(key), cfg.get("pdb_path")
         if "regions" in data:
             data = self.make_ig_from_regions(data)
         chain, sequence, coords = self.parse_chain(data, pdb_path)
         annotations = data.get("annotations", {})
+
         if data["has_sequence"]:
             if not annotations:
                 imgt = annotate_chain(sequence)["aa_regions"]
                 annotations = {k.split("_")[1]: v for k, v in imgt.items()}
             start = annotations["fwr1"][0]
             end = annotations["fwr4"][1]
+
+            if start > 0 or end < len(sequence):
+                raise ValueError(f"Trim antibody chains to Fv region only prior to passing to IGDesign"
+                                 f"For chain {key}, Fv start: {start}, Fv end: {end}, len(sequence): {len(sequence)}")
+            
             sequence = sequence[start:end]
             coords = coords[start:end]
-            if start > 0:
-                annotations = {
-                    k: (v[0] - start, v[1] - start) for k, v in annotations.items()
-                }
+
+            # if start > 0:
+            #     annotations = {
+            #         k: (v[0] - start, v[1] - start) for k, v in annotations.items()
+            #     }
+            
         item[key] = chain
         item["chains"].append(chain)
         item["sequence"].append(sequence)
