@@ -1,13 +1,10 @@
-import os
-import pathlib
 import subprocess
-from typing import TextIO
-import cytoolz as ct
+import tempfile
 from pathlib import Path
+from typing import TextIO
 
+import cytoolz as ct
 import numpy as np
-import random
-import string
 
 # Ref Anarci: schemes.py IMGT
 IMGT_BOUNDARIES = {
@@ -130,7 +127,7 @@ def file_parser(path: str):
             return
 
 
-def execute_anarci(data: str, scheme="imgt", ncpu=32):
+def execute_anarci(data: str, output_path: Path, scheme="imgt", ncpu=32):
     """
     Run ANARCI and return the annotations and a list of IMGT region
     AA assignments from ANARCI results.
@@ -140,12 +137,6 @@ def execute_anarci(data: str, scheme="imgt", ncpu=32):
     Returns:
         Chain annotations dictionary.
     """
-    wd = os.getcwd()
-    output_name = "".join(random.choices(string.ascii_letters, k=32)) + ".anarci"
-    output_path = pathlib.Path(wd, output_name)
-    if output_path.exists():
-        output_path.unlink()
-
     ARG_CMD = [
         "ANARCI",
         "--scheme",
@@ -199,13 +190,19 @@ def annotate_chain(sequence: str):
         return {}
     sequence = sequence.replace(PROTEIN_X, PROTEIN_G)
     sequence = sequence.replace(PROTEIN_U, PROTEIN_G)
-    results = execute_anarci(sequence)
-    if results.returncode != 0:
-        raise Exception(results.stderr)
-    out = list(file_parser(results.output_file))
+
+    with tempfile.NamedTemporaryFile(suffix=".anarci") as temp_file:
+        results = execute_anarci(
+            data=sequence,
+            output_path=Path(temp_file.name),
+        )
+        if results.returncode != 0:
+            raise Exception(results.stderr)
+        out = list(file_parser(results.output_file))
+
     if not out:
         return {"anarci_chain_type": None}
-    os.remove(results.output_file)
+
     out[0]["aa_regions"] = aa_regions(out[0])
     start = out[0]["anarci_seqstart_index"]
     out[0]["variable"] = (start, start + out[0]["aa_regions"]["imgt_fwr1"][-1])
