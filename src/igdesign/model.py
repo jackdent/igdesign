@@ -15,9 +15,14 @@ class Model(pl.LightningModule):
             setattr(self, key, value)
         self.config = cfg
         self.overrides = kwargs
-        seed = self.configure("random_seed")
-        if seed is not None:
-            pl.seed_everything(seed)
+
+        # --------------------------------------------------------------------------
+        # We don't want to seed everything when we load the model, since this leads to
+        # unintuiive behaviour (loading the model changes state).
+        # --------------------------------------------------------------------------
+        # seed = self.configure("random_seed")
+        # if seed is not None:
+        #     pl.seed_everything(seed)
 
         self.task = self.configure("task")
         feature_factory_kwargs = (
