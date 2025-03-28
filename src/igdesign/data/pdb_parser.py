@@ -331,10 +331,3 @@ def gemmi_get_missing_residues(
     missing_residues = dict(missing_residues)
 
     return {k-1: v for k, v in missing_residues.items()} # igdesign convention
-
-class PDBParserAnnotatorV2(PDBParserAnnotator):
-
-    def _parse_missing_residues(
-        self, pdb_file: str, chain_id: str
-    ) -> Dict[int, Dict[str, str]]:
-        return gemmi_get_missing_residues(pdb_file, chain_id)
