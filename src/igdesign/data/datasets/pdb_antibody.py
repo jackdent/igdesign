@@ -1,3 +1,4 @@
+from igdesign.data import cif_parser
 import yaml
 from pathlib import Path
 from copy import deepcopy
@@ -153,7 +154,13 @@ class PdbAntibodyDataset(StructureDataset):
         item = dataset.get_item(cfg)
         """
         cfg = deepcopy(cfg)
-        item = self.item_from_cfg(cfg)
+
+        if cfg["pdb_path"].endswith(".cif"):
+            path = cfg['pdb_path']
+            print(f"Loading item from cif path: {path}")
+            item = cif_parser.dataset_item_from_cif(path, uid = cfg["uid"])
+        else:
+            item = self.item_from_cfg(cfg)
 
         chain_symbols, sequences = ct.get(["chains", "sequence"], item)
         coords = torch.concat(item["coords"])
