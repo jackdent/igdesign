@@ -11,10 +11,11 @@ from einops import rearrange
 
 
 def dataset_item_from_cif(cif_path: str,
-                          uid : str,
-                          heavy_chain_id: str,
-                          light_chain_id: str,
-                          antigen_chain_id: str) -> dict[str, Any]:
+                          cfg: dict[str, Any]) -> dict[str, Any]:
+    
+    heavy_chain_id = cfg["heavy"]["chain"]
+    light_chain_id = cfg["light"]["chain"]
+    antigen_chain_ids = [c["chain"] for c in cfg["antigens"]]
     
     if cif_path.startswith("r2://"):
         entities = get_pdb_entities(pdb_id_or_path =cif_path)
@@ -23,16 +24,15 @@ def dataset_item_from_cif(cif_path: str,
         entities = structure_to_entities_data(st)
         
     return _dataset_item_from_entities(entities,
-                                       uid,
                                        heavy_chain_id = heavy_chain_id,
-                                       antigen_chain_id = antigen_chain_id,
-                                       light_chain_id = light_chain_id)
+                                       antigen_chain_ids = antigen_chain_ids,
+                                       light_chain_id = light_chain_id,
+                                       )
 
 def _dataset_item_from_entities(entities,
-                                uid,
                                 heavy_chain_id: str,
                                 light_chain_id: str,
-                                antigen_chain_id: str) -> dict:
+                                antigen_chain_ids: list[str],) -> dict:
 
     # filter to prot:
     entities = [e for e in entities if e.entity_type == EntityType.PROTEIN]
@@ -40,7 +40,7 @@ def _dataset_item_from_entities(entities,
     # order chains: H, L, antigens
     metadata = find_chains_and_cdrs(entities)
 
-    ordered_chain_ids = [heavy_chain_id, light_chain_id, antigen_chain_id]
+    ordered_chain_ids = [heavy_chain_id, light_chain_id, *antigen_chain_ids]
     
     subchain2entity = {e.subchain_id : e for e in entities}
     ordered_entities = [subchain2entity[c] for c in ordered_chain_ids]
@@ -61,7 +61,7 @@ def _dataset_item_from_entities(entities,
 
     # annotations:
     chain_annotations : list[dict] = []
-    for c in ordered_chain_ids:
+    for c, sequence in zip(ordered_chain_ids, sequences):
         chain_data = metadata.get(c)
         assert isinstance(chain_data.regions, dict)
         if len(chain_data.regions) == 0 : # antigen
@@ -69,8 +69,11 @@ def _dataset_item_from_entities(entities,
         else:
             annots_dense = chain_data.regions
             annots_range = {k: (min(v), max(v)+1) for k,v in annots_dense.items()}
+            if annots_range["fwr4"][1] < len(sequence):
+                raise ValueError(f"antibody chain {c} should be trimmed to Fv region")
             chain_annotations.append(annots_range)
 
+    uid = entities[0].pdb_id
     return dict(
         pdb = uid,
         chains = ordered_chain_ids,
@@ -82,5 +85,5 @@ def _dataset_item_from_entities(entities,
         sample_idx = None,
         heavy = heavy_chain_id,
         light = light_chain_id,
-        antigens = antigen_chain_id,
+        antigens = antigen_chain_ids,
     )

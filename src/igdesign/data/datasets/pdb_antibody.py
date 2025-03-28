@@ -158,7 +158,7 @@ class PdbAntibodyDataset(StructureDataset):
         if cfg["pdb_path"].endswith(".cif"):
             path = cfg['pdb_path']
             print(f"Loading item from cif path: {path}")
-            item = cif_parser.dataset_item_from_cif(path, uid = cfg["uid"])
+            item = cif_parser.dataset_item_from_cif(path, cfg = cfg)
         else:
             item = self.item_from_cfg(cfg)
 
