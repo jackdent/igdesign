@@ -1,3 +1,5 @@
+from collections import defaultdict
+from pathlib import Path
 from typing import Dict, Union
 from string import ascii_letters, digits
 
@@ -6,7 +8,7 @@ import pandas as pd
 from Bio import PDB
 
 from igdesign.tokenization import IUPAC_CODES, ATOM_LIST, BACKBONE_ATOM_LIST
-
+import gemmi
 
 def three2one(residue):
     residue = residue if residue.capitalize() != "Unk" else "Xaa"
@@ -284,3 +286,55 @@ class PDBParserAnnotator:
             missing_res[resn][resa] = res
 
         return missing_res
+    
+def gemmi_get_missing_residues(
+    pdb_path: str | Path, chain_id: str
+) -> dict[int, dict[str, str]]:
+    # gets missing residues in same format as igdesign,
+    # using the seqres instead of pdb remarks
+    # needed because our PDBs don't have remarks.
+    if isinstance(pdb_path, Path):
+        pdb_path = pdb_path.as_posix()
+
+    st = gemmi.read_structure(pdb_path)
+    st.assign_label_seq_id()
+    st.assign_subchains()
+    st.remove_waters()
+
+    # dict of residue number -> dict of insertion code -> residue name
+    missing_residues: dict[int, dict[str, str]] = defaultdict(dict)
+
+    model = st[0]
+
+    chain = model.get_subchain(f"{chain_id}xp")
+
+    gemmi_entity = st.get_entity_of(chain)
+    full_sequence = [
+        gemmi.Entity.first_mon(item)  # Ignore point mutations
+        for item in gemmi_entity.full_sequence
+    ]
+
+    resolved_residues = {
+        residue.label_seq: residue for residue in chain.first_conformer()
+    }
+
+    # find offset between seqid and label_seq:
+    first_residue = min(resolved_residues.values(), key=lambda x: x.label_seq)
+    seqid_offset = first_residue.seqid.num - first_residue.label_seq
+
+    for label_seq, residue_name in enumerate(full_sequence, start = 1):
+        if label_seq not in resolved_residues:
+            residue_icode = ""
+            seqid = label_seq + seqid_offset
+            missing_residues[seqid][residue_icode] = residue_name
+
+    missing_residues = dict(missing_residues)
+
+    return {k-1: v for k, v in missing_residues.items()} # igdesign convention
+
+class PDBParserAnnotatorV2(PDBParserAnnotator):
+
+    def _parse_missing_residues(
+        self, pdb_file: str, chain_id: str
+    ) -> Dict[int, Dict[str, str]]:
+        return gemmi_get_missing_residues(pdb_file, chain_id)
