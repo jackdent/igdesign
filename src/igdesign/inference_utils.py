@@ -301,3 +301,50 @@ def sample(model, cfg, batch, save_root=None):
             df.loc[:, column_name] = all_loss_values
 
     return df
+
+@torch.no_grad()
+def score_sequence(model, cfg, batch, chain_sequences: dict[str,str]):
+    """
+    2) Generate logits, depending on which losses you specify in the configs.
+    3) Score the sequences against the logits using cross entropy loss.
+    4) Return dataframe with sequences and scores.
+    """
+    df = pd.DataFrame(index=range(1))
+    seqs, df = sample_sequences(df, batch, cfg, model)
+    all_losses = dict()
+
+    if cfg["independent_loss"]:
+        independent_losses = compute_independent_loss(cfg, seqs, batch, model)
+        all_losses.update(independent_losses)
+
+    # Stack losses into a single tensor so we can convert to dataframe
+    all_losses = {key: torch.stack(value) for key, value in all_losses.items()}
+    combined_seqs = list()
+    for seq_idx, seq in enumerate(seqs):
+        combined_str = ""
+        for region_idx, region_name in enumerate(cfg["region_order"]):
+            region_subset = (
+                seq[cfg["regions"][region_name]["offset_positions"]].cpu().numpy()
+            )
+            combined_str += tensor_to_aa(region_subset)
+            if region_idx != len(cfg["region_order"]) - 1:
+                combined_str += "|"  # region delimiter
+        combined_seqs.append(combined_str)
+    df = pd.concat((df, pd.DataFrame(combined_seqs, columns=["sampled_seq"])), axis=1)
+    for col in df.columns:
+        if col != "sampled_seq":
+            df[col] = df[col].iloc[0]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for loss_type in all_losses.keys():  # all_losses[loss_type]: n_seqs x n_losses
+            column_name = [f"ce_loss_{loss_type}"]
+            all_loss_values = list()
+            for seq_idx in range(seqs.shape[0]):
+                loss_values = all_losses[loss_type][seq_idx].cpu().numpy().tolist()
+                all_loss_values.append(
+                    "|".join([str(round(value, 4)) for value in loss_values])
+                )
+            df.loc[:, column_name] = all_loss_values
+
+    return df
