@@ -182,9 +182,6 @@ def get_lmdesign_logits(batch, cfg, model, decode_order : torch.Tensor | None = 
     else:
         logger.warning("Using precomputed decode order")
         batch["decode_order"] = decode_order.to(model.device)
-       
-
-    print(batch["decode_order"])
 
     # Rearrange decoding order here
     structure_model_out = model.model.structure_model(batch)
