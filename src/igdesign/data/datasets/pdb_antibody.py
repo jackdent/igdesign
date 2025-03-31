@@ -8,7 +8,6 @@ import hydra
 import numpy as np
 import cytoolz as ct
 import itertools as it
-import logging
 
 import igdesign.structure_utils as su
 from igdesign.structure_utils import nan_to_ca
