@@ -1,3 +1,4 @@
+import logging
 import re
 import warnings
 
@@ -10,6 +11,7 @@ from einops import rearrange, repeat
 
 from igdesign.tokenization import AA_TO_IDX, IDX_TO_AA
 
+logger = logging.getLogger(__name__)
 
 nat_aas = "ARNDQEGHILKMFPSTWYV"  # C - removing CYS # X - added unknown X
 nat_aa_posns = [AA_TO_IDX[s] for s in nat_aas]
@@ -148,11 +150,11 @@ def get_independent_logits(batch, cfg, model):
     return torch.cat(combined_running_logits, axis=0)
 
 
-def compute_independent_loss(cfg, seqs, batch, model):
+def compute_independent_loss(cfg, seqs, batch, model, decode_order : torch.Tensor | None = None):
     independent_losses = {
         "independent_" + region_name: list() for region_name in cfg["regions"].keys()
     }
-    independent_logits = get_lmdesign_logits(batch, cfg, model)
+    independent_logits = get_lmdesign_logits(batch, cfg, model, decode_order = decode_order)
     for seq in tqdm(seqs, desc="Scoring sequences with independent loss"):
         for region_name in cfg["regions"].keys():
             region_positions = cfg["regions"][region_name]["offset_positions"]
@@ -172,9 +174,17 @@ def prevent_invalid_tokens(logits):
     return logits
 
 
-def get_lmdesign_logits(batch, cfg, model):
-    decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
-    batch["decode_order"] = decode_order.to(model.device)
+def get_lmdesign_logits(batch, cfg, model, decode_order : torch.Tensor | None = None):
+
+    if decode_order is None:
+        decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
+        batch["decode_order"] = decode_order.to(model.device)
+    else:
+        logger.warning("Using precomputed decode order")
+        batch["decode_order"] = batch["decode_order"].to(model.device)
+       
+
+    print(batch["decode_order"])
 
     # Rearrange decoding order here
     structure_model_out = model.model.structure_model(batch)
@@ -258,53 +268,6 @@ def sample(model, cfg, batch, save_root=None):
     Run inference.
 
     1) Generate sequences by sampling from the model.
-    2) Generate logits, depending on which losses you specify in the configs.
-    3) Score the sequences against the logits using cross entropy loss.
-    4) Return dataframe with sequences and scores.
-    """
-    df = pd.DataFrame(index=range(1))
-    seqs, df = sample_sequences(df, batch, cfg, model)
-    all_losses = dict()
-
-    if cfg["independent_loss"]:
-        independent_losses = compute_independent_loss(cfg, seqs, batch, model)
-        all_losses.update(independent_losses)
-
-    # Stack losses into a single tensor so we can convert to dataframe
-    all_losses = {key: torch.stack(value) for key, value in all_losses.items()}
-    combined_seqs = list()
-    for seq_idx, seq in enumerate(seqs):
-        combined_str = ""
-        for region_idx, region_name in enumerate(cfg["region_order"]):
-            region_subset = (
-                seq[cfg["regions"][region_name]["offset_positions"]].cpu().numpy()
-            )
-            combined_str += tensor_to_aa(region_subset)
-            if region_idx != len(cfg["region_order"]) - 1:
-                combined_str += "|"  # region delimiter
-        combined_seqs.append(combined_str)
-    df = pd.concat((df, pd.DataFrame(combined_seqs, columns=["sampled_seq"])), axis=1)
-    for col in df.columns:
-        if col != "sampled_seq":
-            df[col] = df[col].iloc[0]
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        for loss_type in all_losses.keys():  # all_losses[loss_type]: n_seqs x n_losses
-            column_name = [f"ce_loss_{loss_type}"]
-            all_loss_values = list()
-            for seq_idx in range(seqs.shape[0]):
-                loss_values = all_losses[loss_type][seq_idx].cpu().numpy().tolist()
-                all_loss_values.append(
-                    "|".join([str(round(value, 4)) for value in loss_values])
-                )
-            df.loc[:, column_name] = all_loss_values
-
-    return df
-
-@torch.no_grad()
-def score_sequence(model, cfg, batch, chain_sequences: dict[str,str]):
-    """
     2) Generate logits, depending on which losses you specify in the configs.
     3) Score the sequences against the logits using cross entropy loss.
     4) Return dataframe with sequences and scores.
