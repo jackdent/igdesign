@@ -293,16 +293,16 @@ class PdbAntibodyDataset(StructureDataset):
             end = annotations["fwr4"][1]
 
             if start > 0 or end < len(sequence):
-                logging.warning(f"Trim antibody chains to Fv region only prior to passing to IGDesign"
+                raise ValueError(f"Trim antibody chains to Fv region only prior to passing to IGDesign"
                                  f"For chain {key}, Fv start: {start}, Fv end: {end}, len(sequence): {len(sequence)}")
             
             sequence = sequence[start:end]
             coords = coords[start:end]
 
-            if start > 0:
-                annotations = {
-                    k: (v[0] - start, v[1] - start) for k, v in annotations.items()
-                }
+            # if start > 0:
+            #     annotations = {
+            #         k: (v[0] - start, v[1] - start) for k, v in annotations.items()
+            #     }
             
         item[key] = chain
         item["chains"].append(chain)
