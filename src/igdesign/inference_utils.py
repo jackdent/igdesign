@@ -2,12 +2,13 @@ import logging
 import re
 import warnings
 
-from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import torch
-from torch.nn.functional import cross_entropy
 from einops import rearrange, repeat
+from lightning import seed_everything
+from torch.nn.functional import cross_entropy
+from tqdm import tqdm
 
 from igdesign.tokenization import AA_TO_IDX, IDX_TO_AA
 
@@ -150,11 +151,29 @@ def get_independent_logits(batch, cfg, model):
     return torch.cat(combined_running_logits, axis=0)
 
 
-def compute_independent_loss(cfg, seqs, batch, model, decode_order : torch.Tensor | None = None):
+def compute_independent_loss(
+    cfg,
+    seqs,
+    batch,
+    model,
+    decode_order: torch.Tensor | None = None,
+    loss_reseed: int | None = None,
+):
+    """
+    loss_reseed: If set, this will reseed everything before sampling lmdesign logits.
+    Added by @DGeisz on 04-01-2025 to allow us to test sampling igdesign perplexity.
+
+    """
     independent_losses = {
         "independent_" + region_name: list() for region_name in cfg["regions"].keys()
     }
-    independent_logits = get_lmdesign_logits(batch, cfg, model, decode_order = decode_order)
+
+    if loss_reseed is not None:
+        seed_everything(loss_reseed)
+
+    independent_logits = get_lmdesign_logits(
+        batch, cfg, model, decode_order=decode_order
+    )
     for seq in tqdm(seqs, desc="Scoring sequences with independent loss"):
         for region_name in cfg["regions"].keys():
             region_positions = cfg["regions"][region_name]["offset_positions"]
@@ -174,8 +193,7 @@ def prevent_invalid_tokens(logits):
     return logits
 
 
-def get_lmdesign_logits(batch, cfg, model, decode_order : torch.Tensor | None = None):
-
+def get_lmdesign_logits(batch, cfg, model, decode_order: torch.Tensor | None = None):
     if decode_order is None:
         decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
         batch["decode_order"] = decode_order.to(model.device)
@@ -260,7 +278,7 @@ def sample_sequences(df, batch, cfg, model):
 
 
 @torch.no_grad()
-def sample(model, cfg, batch, save_root=None):
+def sample(model, cfg, batch, save_root=None, loss_reseed: int | None = None):
     """
     Run inference.
 
@@ -274,7 +292,9 @@ def sample(model, cfg, batch, save_root=None):
     all_losses = dict()
 
     if cfg["independent_loss"]:
-        independent_losses = compute_independent_loss(cfg, seqs, batch, model)
+        independent_losses = compute_independent_loss(
+            cfg, seqs, batch, model, loss_reseed=loss_reseed
+        )
         all_losses.update(independent_losses)
 
     # Stack losses into a single tensor so we can convert to dataframe
