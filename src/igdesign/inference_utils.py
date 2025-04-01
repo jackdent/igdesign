@@ -1,3 +1,4 @@
+import logging
 import re
 import warnings
 
@@ -10,6 +11,7 @@ from einops import rearrange, repeat
 
 from igdesign.tokenization import AA_TO_IDX, IDX_TO_AA
 
+logger = logging.getLogger(__name__)
 
 nat_aas = "ARNDQEGHILKMFPSTWYV"  # C - removing CYS # X - added unknown X
 nat_aa_posns = [AA_TO_IDX[s] for s in nat_aas]
@@ -148,11 +150,11 @@ def get_independent_logits(batch, cfg, model):
     return torch.cat(combined_running_logits, axis=0)
 
 
-def compute_independent_loss(cfg, seqs, batch, model):
+def compute_independent_loss(cfg, seqs, batch, model, decode_order : torch.Tensor | None = None):
     independent_losses = {
         "independent_" + region_name: list() for region_name in cfg["regions"].keys()
     }
-    independent_logits = get_lmdesign_logits(batch, cfg, model)
+    independent_logits = get_lmdesign_logits(batch, cfg, model, decode_order = decode_order)
     for seq in tqdm(seqs, desc="Scoring sequences with independent loss"):
         for region_name in cfg["regions"].keys():
             region_positions = cfg["regions"][region_name]["offset_positions"]
@@ -172,9 +174,14 @@ def prevent_invalid_tokens(logits):
     return logits
 
 
-def get_lmdesign_logits(batch, cfg, model):
-    decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
-    batch["decode_order"] = decode_order.to(model.device)
+def get_lmdesign_logits(batch, cfg, model, decode_order : torch.Tensor | None = None):
+
+    if decode_order is None:
+        decode_order, offset, num_design_positions = get_decode_order(cfg, batch)
+        batch["decode_order"] = decode_order.to(model.device)
+    else:
+        logger.warning("Using precomputed decode order")
+        batch["decode_order"] = decode_order.to(model.device)
 
     # Rearrange decoding order here
     structure_model_out = model.model.structure_model(batch)
