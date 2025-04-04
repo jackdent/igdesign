@@ -340,16 +340,15 @@ class PdbAntibodyDataset(StructureDataset):
             *(self.parse_chain(d, pdb_path) for d in cfg["antigens"])
         )
         coords = [c + np.random.randn(*c.shape) * self.ab_noise for c in coords]
-        annotations = {
+        annotations = [{
             "epitope": self._get_epitope_idx(cfg, c, s)
-            for c, s in zip(chains, sequences)
-        }
+        }  for c, s in zip(chains, sequences)]
 
         item["antigens"] = chains
         item["chains"].extend(chains)
         item["sequence"].extend(sequences)
         item["coords"].extend(coords)
-        item["annotations"].append(annotations)
+        item["annotations"].extend(annotations)
         return item
 
     def get_chi_masks(self, sequences):
